@@ -1,0 +1,428 @@
+/*
+Brett Hiebert
+LinkedList.tem
+LinkedList Template Implementation
+Data Members: LinkedList has pointer headPtr, tailPtr, and a size_t nodeNum to keep track of the list size.
+09/29/2018
+*/
+
+//DEFAULT CONSTRUCTOR
+//Postcondition:
+//LinkedList has been create and all data members (headPtr, tailPtr, nodeNum) have been initialized. 
+template <class Item>
+LinkedList<Item>::LinkedList()
+{
+	headPtr = nullptr;
+	tailPtr = nullptr;
+	nodeNum = 0;
+}
+
+//COPY CONSTRUCTOR
+//Postcondition:
+//New LinkedList has been created and has been initailized with a deep copy of the data in the source list
+template <class Item>
+LinkedList<Item>::LinkedList(const LinkedList<Item> & source)
+{
+	*this = source; // calls the assignment operator
+}
+
+//ASSIGNMENT OPERATOR OVERLOAD
+//Postcondition:
+//LinkedList object (on the left side of the operator) is cleared and reinitialized with deep copy of the data in the source list
+template <class Item>
+void LinkedList<Item>::operator=(const LinkedList & source)
+{
+	if (&source == this) // check for self assignment
+		return; //*this;   
+
+	free();   // deletes any existing memory, sets nodeNum back to zero, resets head and tail to nullptr
+	
+	Node<Item>* cursor = source.headPtr; // make a temp pointer to loop through data
+
+	for(cursor; cursor != nullptr ; cursor = cursor->next) // loop through all data
+		add(cursor->data); // add item with the data in each of the sources item
+}
+
+//DESTRUCTOR
+//Postcondition:
+//All nodes and data have been cleared from the linkedlist.
+//NodeNum is reset to Zero and headPtr and tailPtr are set to nullptr. 
+template <class Item>
+LinkedList<Item>::~LinkedList()
+{
+	free(); // clears all the memory in the nodes and sets nodeNum back to zero.
+}
+
+//ADD
+//Postcondition:
+//New Node has been created and added to the end of the list. 
+//Tail pointer should point to the last Node. 
+//NodeNum has been incremented.
+template <class Item>
+void LinkedList<Item>::add(const Item& entry)
+{
+	Node<Item>* newItem = new Node<Item>(entry);
+
+	if (headPtr == nullptr)// if the list is empty
+	{
+		headPtr = newItem;
+		tailPtr = newItem; // head and the tail both point to the new item
+	}
+	else
+	{
+		tailPtr->next = newItem;
+		tailPtr = newItem;
+	}
+	nodeNum++; // add 1 to the list length value
+}
+
+//INSERT
+//Postcondition:
+//New node has been created with the entry data and inserted in the list after the node containing the entryAfter data.
+//NodeNum has been incremented.
+template <class Item>
+void LinkedList<Item>::insert(const Item& entryAfter, const Item& entry)
+{
+	Node<Item>* insertAfterPtr = find(entryAfter);
+
+	if(insertAfterPtr == nullptr) // if entryAfter was not found
+	{
+		add(entry); //simply add at the end
+		return;
+	}
+
+	Node<Item>* insertPtr; // create a new Node pointer
+	insertPtr = new Node<Item>(entry, insertAfterPtr->next); //create a new node with the entry data and initalize it's link to the previous pointer's link
+	insertAfterPtr->next = insertPtr; //point the the previous pointer to the newly created node.
+	++nodeNum; // add 1 to the list length value
+}
+
+//ADD AT HEAD
+//Postcondition:
+//New node has been created with the entry data and added at the head of the list.
+//NodeNum has been incremented.
+template <class Item>
+void LinkedList<Item>::addAtHead(const Item& entry)
+{
+	headPtr = new Node<Item>(entry, headPtr);
+	++nodeNum; // add 1 to the list length value
+}
+
+//ADD ASCENDING
+//Postcondition:
+//New node has been created with the entry data and added after the nodes that are smaller than it, but before any larger nodes.
+//NodeNum has been incremented.
+template <class Item>
+void LinkedList<Item>::addAscending(const Item& entry)
+{
+	Node<Item>* cursor;
+	Item addAfter = headPtr->data; //initialize node cursors
+	Item addBefore = tailPtr->data;
+
+	for (cursor = headPtr; cursor != nullptr; cursor = cursor->next) //for whole list
+	{
+		if (cursor->data > entry) //if a larger node is encountered
+		{
+			addBefore = cursor->data; // set before cursor
+			break; //break loop
+		}
+
+			addAfter = cursor->data; //set addAfter before restarting the loop		
+	}
+
+	if(addBefore == headPtr->data) // if node is at the head
+	{
+		addAtHead(entry);
+		return;
+	}
+
+	if(addAfter == tailPtr->data) // if the node is at the tail
+	{
+		add(entry);
+		return;
+	}
+
+	insert(addAfter, entry); // else, insert after the addAfter Node
+}
+
+//ADD DESCENDING
+//Postcondition:
+//New node has been created with the entry data and added after the nodes that are larger than it, but before any smaller nodes.
+//NodeNum has been incremented.
+template <class Item>
+void LinkedList<Item>::addDescending(const Item& entry) //Note: same algorithm as addAscending but with < check instead of >
+{
+	Node<Item>* cursor;
+	Item addAfter = headPtr->data;
+	Item addBefore = tailPtr->data;
+
+	for (cursor = headPtr; cursor != nullptr; cursor = cursor->next)
+	{
+		if (cursor->data < entry) // if a smaller node is encountered (only difference - see addAscending for other notes)
+		{
+			addBefore = cursor->data;
+			break;
+		}
+
+			addAfter = cursor->data;			
+	}
+
+	if (addBefore == headPtr->data)
+	{
+		addAtHead(entry);
+		return;
+	}
+
+	if(addAfter == tailPtr->data)
+	{
+		add(entry);
+		return;
+	}
+
+	insert(addAfter, entry);
+}
+
+//FIND
+//Postcondition:
+//If this target data is found in the list, a pointer to that particular node is returned
+//Else nullptr is returned
+template <class Item>
+Node<Item>* LinkedList<Item>::find(const Item& target)
+{
+	Node<Item>* cursor;
+
+	for (cursor = headPtr; cursor != nullptr; cursor = cursor->next)
+	{
+		if (target == cursor->data)
+			return cursor;
+	}
+
+	return nullptr; // if the entry is not in the list, return NULL
+}
+
+//FIND PREVIOUS
+//Precondition: Target is not the data at the head node (null is previous to head)
+//Postcondition:
+//If this target data is found in the list, a pointer to the node before that particular node is returned
+//Else nullptr is returned
+template <class Item>
+Node<Item>* LinkedList<Item>::findPrevious(const Item& target)
+{
+	for (Node<Item>* previous = headPtr; previous != nullptr; previous = previous->next)
+		if (previous->next != nullptr && previous->next->data == target)
+			return previous;
+	return nullptr;
+}
+
+//COUNT ITEMS
+//Postcondition:
+//A count of the Nodes containing the itemToCount is returned
+template <class Item>
+std::size_t LinkedList<Item>::countItems(const Item& itemToCount) const
+{
+	std::size_t answer = 0; // size var to return the counted items initalized to zero;
+
+	Node<Item>* cursor;
+
+	for (cursor = headPtr; cursor != nullptr; cursor = cursor->next)
+	{
+		if (itemToCount == cursor->data)
+			answer++;
+	}
+	return answer; // return final count
+}
+
+//REMOVE BY ITEM
+//Postcondition:
+//The first instance of the Node that contains the target Item has been removed from the list.
+//HeadPtr and tailPtr should point to the correct nodes. 
+//Nodenum has been decremented
+template <class Item>
+bool LinkedList<Item>::removeByItem(const Item& target)
+{
+	Node<Item>* previous = nullptr; //temp cursor nodes - scope is local so no need to delete.	
+	Node<Item>* cursor = nullptr;
+
+	//IF THE LIST IS EMPTY
+	if (headPtr == nullptr) 
+		return false;
+
+	//IF THE ITEM IS AT THE HEAD
+	if (headPtr->data == target)
+	{
+		cursor = headPtr;
+		headPtr = headPtr->next;
+		if (headPtr == nullptr) // case of 1 item list
+			headPtr = nullptr;
+		delete cursor;
+		--nodeNum;
+		return true;
+	}
+
+	//FIND PREVIOUS NODE
+	previous = findPrevious(target);
+
+	if (previous == nullptr) //IF NOTHING WAS FOUND
+		return false;
+
+	//IF THE ITEM IS LAST
+	if (previous->next == tailPtr) // target is the last node to remove
+	{
+		previous->next = nullptr;
+		cursor = tailPtr;
+		tailPtr = previous; //move the last to point to the previous one.
+		delete cursor;
+		--nodeNum;
+		return true;
+	}
+
+	//FINALLY, IF THE ITEM IS SOMEWHERE IN THE MIDDLE
+	cursor = previous->next;
+	previous->next = cursor->next;
+	delete cursor;
+	--nodeNum;
+	return true;
+}
+
+
+//PRINTALL
+//Postcondition:
+//All items in the list have been printed in the console
+template<class Item>
+void LinkedList<Item>::printAll()
+{
+	Node<Item>* cursor = headPtr;
+
+	for (cursor; cursor != nullptr; cursor = cursor->next) // for all items
+	{
+		std::cout << cursor->data << std::endl; //print
+	}
+}
+
+//REMOVE ALL DUPLICATES
+//Postcondition:
+//Any and all duplicate items in the list have been removed.
+//Nodenum has been decremented correctly
+template<class Item>
+void LinkedList<Item>::removeAllDuplicates()
+{
+	Node<Item>* cursor = headPtr;
+	Node<Item>* target = nullptr;
+	Node<Item>* dupe = nullptr;
+
+	for(cursor; cursor != nullptr && cursor->next != nullptr; cursor=cursor->next) // for the whole list
+	{
+		target = cursor; // start the target at the cursor
+
+		while(target->next != nullptr) // until the end of the list
+		{
+			if(cursor->data == target->next->data) // if the next item is the same as the current cursor position
+			{
+				dupe = target->next; // next item is a dupe
+
+				if (target->next == tailPtr) // if there is a dupe at the end that will be removed (tail node case)
+				{
+					tailPtr = target; //relink tailPtr to the last node.
+				}
+
+				target->next = target->next->next; // relink target past dupe.
+
+				delete dupe; // finally, with everthing relinked, delete the dupe.
+				nodeNum--; // decrement the number of nodes.
+			}
+			else
+			{
+				target = target->next; // move target up
+			}
+
+		}
+
+	}
+}
+
+//CLEAR - PUBLIC MEMBER FUNCTION
+//Postcondition:
+//All nodes and data have been cleared from the linkedlist.
+//NodeNum is reset to Zero and headPtr and tailPtr are set to nullptr. 
+template<class Item>
+void LinkedList<Item>::clear()
+{
+	free();
+}
+
+//FREE (PRIVATE)
+//Postcondition:
+//All nodes and data have been cleared from the linkedlist.
+//NodeNum is reset to Zero and headPtr and tailPtr are set to nullptr.
+template<class Item>
+void LinkedList<Item>::free()
+{
+	Node<Item>* tmp = nullptr;
+	while (headPtr != nullptr) {
+		tmp = headPtr;
+		headPtr = headPtr->next;
+		delete tmp;
+	}
+
+	tailPtr = nullptr;
+	nodeNum = 0; // set the length value back to zero;
+}
+
+
+//READFILE
+//Note: Be sure to check for >> override in the Item data type and match the delimiter in the writefile (default is " ")
+//Postcondition:
+//All data has been read from the fileName.file and nodes have been created and added into the LinkedList
+template<class Item>
+void LinkedList<Item>::readFile(std::string fileName)
+{
+	std::ifstream inf;
+	Item data;
+
+	inf.open(fileName); // open file
+
+	if(inf.fail()) // if file did not work
+	{
+		std::cout << "Error opening input file." << std::endl;
+		exit(1); // exit
+	}
+
+	if(!(inf >> data)) // check for any data in the file
+	{
+		std::cout << "Error - File is empty." << std::endl;
+		return;
+	} 
+
+	while(!(inf.eof())) //while not at the end of the file
+	{
+		add(data);
+		inf >> data;
+	} 
+
+	inf.close(); // close the file
+}
+
+//WRITEFILE
+//Postcondition:
+//All data has been written to the fileName.file and separated by the delimiter (default is " ")
+template<class Item>
+void LinkedList<Item>::writeFile(std::string fileName, std::string delim)
+{
+	std::ofstream outf;
+
+	outf.open(fileName);
+
+	if(outf.fail())
+	{
+		std::cout << "Error opening output file." << std::endl;
+		exit(1);
+	}
+
+	for (Node<Item>* cursor = headPtr; cursor != nullptr; cursor = cursor->next) // for the whole list
+	{
+		outf << cursor->data; // save the data
+		outf << delim; // add delimiter
+	}
+
+	outf.close(); // close the file
+}
